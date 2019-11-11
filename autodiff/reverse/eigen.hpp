@@ -54,6 +54,18 @@ template<> struct NumTraits<autodiff::var> : NumTraits<double> // permits to get
     };
 };
 
+template<typename BinOp>
+struct ScalarBinaryOpTraits<autodiff::var, double, BinOp>
+{
+  typedef autodiff::var ReturnType;
+};
+
+template<typename BinOp>
+struct ScalarBinaryOpTraits<double, autodiff::var, BinOp>
+{
+    typedef autodiff::var ReturnType;
+};
+    
 #define EIGEN_MAKE_TYPEDEFS(Type, TypeSuffix, Size, SizeSuffix)   \
 typedef Matrix<Type, Size, Size, 0, Size, Size> Matrix##SizeSuffix##TypeSuffix;  \
 typedef Matrix<Type, Size, 1, 0, Size, 1>       Vector##SizeSuffix##TypeSuffix;  \
