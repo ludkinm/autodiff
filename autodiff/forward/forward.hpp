@@ -1496,10 +1496,10 @@ constexpr void apply(Dual<T, G>& self, AbsOp)
 template<typename T, typename G>
 constexpr void apply(Dual<T, G>& self, ErfOp)
 {
-    constexpr double pi = 3.1415926535897932384626433832795029;
+    constexpr double sqrt_pi = std::sqrt(3.1415926535897932384626433832795029);
     const T aux = self.val;
     self.val = erf(aux);
-    self.grad *= 2.0 * exp(-aux*aux)/sqrt(pi);
+    self.grad *= 2.0 * exp(-aux*aux)/sqrt_pi;
 }
 
 template<typename Op, typename T, typename G>
