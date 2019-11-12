@@ -61,6 +61,7 @@ using std::cosh;
 using std::sinh;
 using std::tanh;
 using std::erf;
+using std::erfc;
 
 //=====================================================================================================================
 //
@@ -97,6 +98,7 @@ struct SqrtOp   {};  // SQUARE ROOT OPERATOR
 struct PowOp    {};  // POWER OPERATOR
 struct AbsOp    {};  // ABSOLUTE OPERATOR
 struct ErfOp    {};  // ERROR FUNCTION OPERATOR
+struct ErfcOp   {};  // COMPLEMENTARY ERROR FUNCTION OPERATOR
 
 //-----------------------------------------------------------------------------
 // OTHER OPERATORS
@@ -184,6 +186,9 @@ using AbsExpr = UnaryExpr<AbsOp, R>;
 
 template<typename R>
 using ErfExpr = UnaryExpr<ErfOp, R>;
+
+template<typename R>
+using ErfcExpr = UnaryExpr<ErfcOp, R>;
 
 //-----------------------------------------------------------------------------
 // DERIVED ARITHMETIC EXPRESSIONS
@@ -939,6 +944,7 @@ template<typename R, enableif<isExpr<R>>...> constexpr auto conj(R&& r) { return
 template<typename R, enableif<isExpr<R>>...> constexpr auto real(R&& r) { return std::forward<R>(r); }
 template<typename R, enableif<isExpr<R>>...> constexpr auto imag(R&& r) { return 0.0; }
 template<typename R, enableif<isExpr<R>>...> constexpr auto erf(R&& r) -> ErfExpr<R> { return { r }; }
+template<typename R, enableif<isExpr<R>>...> constexpr auto erfc(R&& r) -> ErfcExpr<R> { return { r }; }
 
 //=====================================================================================================================
 //
@@ -1500,6 +1506,15 @@ constexpr void apply(Dual<T, G>& self, ErfOp)
     const T aux = self.val;
     self.val = erf(aux);
     self.grad *= 2.0 * exp(-aux*aux)/sqrt_pi;
+}
+
+template<typename T, typename G>
+constexpr void apply(Dual<T, G>& self, ErfcOp)
+{
+    constexpr double sqrt_pi = std::sqrt(3.1415926535897932384626433832795029);
+    const T aux = self.val;
+    self.val = erfc(aux);
+    self.grad *= -2.0 * exp(-aux*aux)/sqrt_pi;
 }
 
 template<typename Op, typename T, typename G>

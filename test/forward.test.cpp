@@ -6,7 +6,7 @@
 using namespace Eigen;
 
 // For Special functions like Erf
-#include <eigen3/unsupported/Eigen/SpecialFunctions>
+#include <autodiff/eigen_hacks.hpp>
 
 // autodiff includes
 #include <autodiff/forward.hpp>
@@ -766,7 +766,6 @@ TEST_CASE("Eigen::VectorXdual tests", "[dual]")
         REQUIRE( g[1] == approx( 0.878783 ) );
         REQUIRE( g[2] == approx( 0.415107 ) );
     }
-
 
     SECTION("testing gradient derivatives of only the last two variables")
     {
