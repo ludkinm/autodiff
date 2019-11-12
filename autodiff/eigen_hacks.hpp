@@ -11,20 +11,24 @@ namespace Eigen {
      */
 
     // Erf - Basically copied the internals for std::sin and replaced with erf
-    template<typename T>
-    EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-    T erf(const T &x) {
-      EIGEN_USING_STD_MATH(erf);
-      return erf(x);
-    }
+    namespace numext {
+
+      template<typename T>
+      EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+      T erf(const T &x) {
+	EIGEN_USING_STD_MATH(erf);
+	return erf(x);
+      }
 
 #ifdef __CUDACC__
-    template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-    float erf(const float &x) { return ::erff(x); }
+      template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+      float erf(const float &x) { return ::erff(x); }
 
-    template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-    double erf(const double &x) { return ::erf(x); }
+      template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+      double erf(const double &x) { return ::erf(x); }
 #endif
+
+    }
 
     template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
     Packet perf(const Packet& a) { using std::erf; return erf(a); }
@@ -39,20 +43,22 @@ namespace Eigen {
 
 
     // Erfc - Basically copied the internals for std::sin and replaced with erf
-    template<typename T>
-    EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-    T erfc(const T &x) {
-      EIGEN_USING_STD_MATH(erfc);
-      return erfc(x);
-    }
+    namespace numext {
+      template<typename T>
+      EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+      T erfc(const T &x) {
+	EIGEN_USING_STD_MATH(erfc);
+	return erfc(x);
+      }
 
 #ifdef __CUDACC__
-    template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-    float erfc(const float &x) { return ::erfcf(x); }
+      template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+      float erfc(const float &x) { return ::erfcf(x); }
 
-    template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-    double erfc(const double &x) { return ::erfc(x); }
+      template<> EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+      double erfc(const double &x) { return ::erfc(x); }
 #endif
+    }
 
     template<typename Packet> EIGEN_DECLARE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
     Packet perfc(const Packet& a) { using std::erfc; return erfc(a); }
