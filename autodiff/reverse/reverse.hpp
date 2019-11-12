@@ -68,6 +68,7 @@ struct PowExpr;
 struct SqrtExpr;
 struct AbsExpr;
 struct ErfExpr;
+struct ErfcExpr;
 
 using ExprPtr = std::shared_ptr<const Expr>;
 
@@ -141,6 +142,7 @@ ExprPtr conj(const ExprPtr& x);
 ExprPtr real(const ExprPtr& x);
 ExprPtr imag(const ExprPtr& x);
 ExprPtr erf(const ExprPtr& x);
+ExprPtr erfc(const ExprPtr& x);
 
 //------------------------------------------------------------------------------
 // COMPARISON OPERATORS (DECLARATION ONLY)
@@ -610,20 +612,36 @@ struct AbsExpr : UnaryExpr
 
 struct ErfExpr : UnaryExpr
 {
-    constexpr static double pi = 3.1415926535897932384626433832795029;
+    constexpr static double two_by_sqrt_pi = 2.0/std::sqrt(3.1415926535897932384626433832795029);
 
     ErfExpr(double val, const ExprPtr& x) : UnaryExpr(val, x) {}
 
     virtual void propagate(DerivativesMap& derivatives, double wprime) const
     {
-      const auto aux = 2.0/std::sqrt(pi) * std::exp(-(x->val)*(x->val));
-      x->propagate(derivatives, wprime * aux);
+        x->propagate(derivatives, wprime * two_by_sqrt_pi * std::exp(-(x->val)*(x->val)));
     }
 
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
     {
-      const auto aux = 2.0/std::sqrt(pi) * exp(-x*x);
-      x->propagate(derivatives, wprime * aux);
+        x->propagate(derivatives, wprime * two_by_sqrt_pi * exp(-x*x));
+    }
+};
+
+
+struct ErfcExpr : UnaryExpr
+{
+    constexpr static double two_by_sqrt_pi = 2.0/std::sqrt(3.1415926535897932384626433832795029);
+
+    ErfcExpr(double val, const ExprPtr& x) : UnaryExpr(val, x) {}
+
+    virtual void propagate(DerivativesMap& derivatives, double wprime) const
+    {
+        x->propagate(derivatives, -wprime * two_by_sqrt_pi * std::exp(-(x->val)*(x->val)));
+    }
+
+    virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
+    {
+        x->propagate(derivatives, -wprime * two_by_sqrt_pi * exp(-x*x));
     }
 };
 
@@ -695,6 +713,7 @@ inline ExprPtr conj(const ExprPtr& x) { return x; }
 inline ExprPtr real(const ExprPtr& x) { return x; }
 inline ExprPtr imag(const ExprPtr& x) { return constant(0.0); }
 inline ExprPtr erf(const ExprPtr& x) { return std::make_shared<ErfExpr>(std::erf(x->val), x); }
+inline ExprPtr erfc(const ExprPtr& x) { return std::make_shared<ErfcExpr>(std::erfc(x->val), x); }
 
 //------------------------------------------------------------------------------
 // COMPARISON OPERATORS
@@ -852,6 +871,7 @@ inline ExprPtr conj(const var& x) { return conj(x.expr); }
 inline ExprPtr real(const var& x) { return real(x.expr); }
 inline ExprPtr imag(const var& x) { return imag(x.expr); }
 inline ExprPtr erf(const var& x) { return erf(x.expr); }
+inline ExprPtr erfc(const var& x) { return erfc(x.expr); }
 
 /// Return the value of a variable x.
 inline double val(const var& x)

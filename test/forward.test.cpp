@@ -767,6 +767,23 @@ TEST_CASE("Eigen::VectorXdual tests", "[dual]")
         REQUIRE( g[2] == approx( 0.415107 ) );
     }
 
+    SECTION("testing gradient derivatives with Erfc")
+    {
+        auto f = [](const VectorXdual& x) -> dual
+        {
+            return erfc(x.array()).sum();
+        };
+
+        VectorXdual x(3);
+        x << 0.0, 0.5, 1.0;
+
+        VectorXd g = gradient(f, wrt(x), at(x));
+
+        REQUIRE( g[0] == approx( -1.12838  ) );
+        REQUIRE( g[1] == approx( -0.878783 ) );
+        REQUIRE( g[2] == approx( -0.415107 ) );
+    }
+
     SECTION("testing gradient derivatives of only the last two variables")
     {
         // Testing complex function involving sin and cos
