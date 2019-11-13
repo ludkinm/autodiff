@@ -34,10 +34,9 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <ostream>
 
 /// autodiff namespace where @ref var and @ref grad are defined.
-namespace autodiff {}
-
 namespace autodiff {
 namespace reverse {
 
@@ -183,6 +182,9 @@ struct Expr
     /// @param derivatives The container where the derivatives of the root variable w.r.t. to leaf variables are stored.
     /// @param wprime The derivative of the root variable w.r.t. a child expression of this expression (as an expression).
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const = 0;
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const { os << pad << "val:" << val << " at " << &(*this); return os;}
+
 };
 
 struct ParameterExpr : Expr
@@ -190,18 +192,20 @@ struct ParameterExpr : Expr
     using Expr::Expr;
 
     virtual void propagate(DerivativesMap& derivatives, double wprime) const
-    {
-        const auto it = derivatives.find(this);
-        if(it != derivatives.end()) it->second += wprime;
-        else derivatives.insert({ this, wprime });
-    }
+	{
+	    const auto it = derivatives.find(this);
+	    if(it != derivatives.end()) it->second += wprime;
+	    else derivatives.insert({ this, wprime });
+	}
 
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
-    {
-        const auto it = derivatives.find(this);
-        if(it != derivatives.end()) it->second = it->second + wprime;
-        else derivatives.insert({ this, wprime });
-    }
+	{
+	    const auto it = derivatives.find(this);
+	    if(it != derivatives.end()) it->second = it->second + wprime;
+	    else derivatives.insert({ this, wprime });
+	}
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Param:"; return Expr::print(os, ""); }
 };
 
 struct VariableExpr : Expr
@@ -212,19 +216,21 @@ struct VariableExpr : Expr
 
     virtual void propagate(DerivativesMap& derivatives, double wprime) const
     {
-        const auto it = derivatives.find(this);
-        if(it != derivatives.end()) it->second += wprime;
-        else derivatives.insert({ this, wprime });
-        expr->propagate(derivatives, wprime);
+	const auto it = derivatives.find(this);
+	if(it != derivatives.end()) it->second += wprime;
+	else derivatives.insert({ this, wprime });
+	expr->propagate(derivatives, wprime);
     }
 
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
     {
-        const auto it = derivatives.find(this);
-        if(it != derivatives.end()) it->second = it->second + wprime;
-        else derivatives.insert({ this, wprime });
-        expr->propagate(derivatives, wprime);
+	const auto it = derivatives.find(this);
+	if(it != derivatives.end()) it->second = it->second + wprime;
+	else derivatives.insert({ this, wprime });
+	expr->propagate(derivatives, wprime);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Variable:"; Expr::print(os, "") << "\n"; return expr->print(os, pad); }
 };
 
 struct ConstantExpr : Expr
@@ -236,6 +242,8 @@ struct ConstantExpr : Expr
 
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
     {}
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Constant:"; return Expr::print(os, ""); }
 };
 
 struct UnaryExpr : Expr
@@ -243,6 +251,12 @@ struct UnaryExpr : Expr
     ExprPtr x;
 
     UnaryExpr(double val, const ExprPtr& x) : Expr(val), x(x) {}
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override
+    {
+	Expr::print(os, "") << "\n" << pad << "{\n";
+	return x->print(os, pad + " ") << "\n" << pad << "}\n";
+    }
 };
 
 struct NegativeExpr : UnaryExpr
@@ -258,6 +272,8 @@ struct NegativeExpr : UnaryExpr
     {
         x->propagate(derivatives, -wprime);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Neg:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct BinaryExpr : Expr
@@ -265,6 +281,13 @@ struct BinaryExpr : Expr
     ExprPtr l, r;
 
     BinaryExpr(double val, const ExprPtr& l, const ExprPtr& r) : Expr(val), l(l), r(r) {}
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override
+    {
+	Expr::print(os, "") << "\n" << pad << "{\n";
+	l->print(os, pad + " ") << "\n" << pad << "}{\n";
+	return r->print(os, pad + " ") << "\n" << pad << "}";
+    }
 };
 
 struct AddExpr : BinaryExpr
@@ -282,6 +305,8 @@ struct AddExpr : BinaryExpr
         l->propagate(derivatives, wprime);
         r->propagate(derivatives, wprime);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Add:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct SubExpr : BinaryExpr
@@ -299,6 +324,8 @@ struct SubExpr : BinaryExpr
         l->propagate(derivatives,  wprime);
         r->propagate(derivatives, -wprime);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Sub:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct MulExpr : BinaryExpr
@@ -316,6 +343,8 @@ struct MulExpr : BinaryExpr
         l->propagate(derivatives, wprime * r);
         r->propagate(derivatives, wprime * l);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Mul:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct DivExpr : BinaryExpr
@@ -337,6 +366,8 @@ struct DivExpr : BinaryExpr
         l->propagate(derivatives, wprime * aux1);
         r->propagate(derivatives, wprime * aux2);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Div:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct SinExpr : UnaryExpr
@@ -352,6 +383,8 @@ struct SinExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime * cos(x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Sin:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct CosExpr : UnaryExpr
@@ -367,6 +400,8 @@ struct CosExpr : UnaryExpr
     {
         x->propagate(derivatives, -wprime * sin(x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Cos:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct TanExpr : UnaryExpr
@@ -384,6 +419,8 @@ struct TanExpr : UnaryExpr
         const auto aux = 1.0 / cos(x);
         x->propagate(derivatives, wprime * aux * aux);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Tann:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct SinhExpr : UnaryExpr
@@ -399,6 +436,8 @@ struct SinhExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime * cosh(x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Sinh:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct CoshExpr : UnaryExpr
@@ -414,6 +453,8 @@ struct CoshExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime * sinh(x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Cosh:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct TanhExpr : UnaryExpr
@@ -431,6 +472,8 @@ struct TanhExpr : UnaryExpr
         const auto aux = 1.0 / cosh(x);
         x->propagate(derivatives, wprime * aux * aux);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Tanh:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct ArcSinExpr : UnaryExpr
@@ -446,6 +489,8 @@ struct ArcSinExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime / sqrt(1.0 - x * x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "ArcSin:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct ArcCosExpr : UnaryExpr
@@ -461,6 +506,8 @@ struct ArcCosExpr : UnaryExpr
     {
         x->propagate(derivatives, -wprime / sqrt(1.0 - x * x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "ArcCos:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct ArcTanExpr : UnaryExpr
@@ -476,6 +523,8 @@ struct ArcTanExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime / (1.0 + x * x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "ArcTan:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct ExpExpr : UnaryExpr
@@ -491,6 +540,8 @@ struct ExpExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime * exp(x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Exp:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct LogExpr : UnaryExpr
@@ -506,6 +557,8 @@ struct LogExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime / x);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Log:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct Log10Expr : UnaryExpr
@@ -523,6 +576,8 @@ struct Log10Expr : UnaryExpr
     {
         x->propagate(derivatives, wprime / (ln10 * x));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Log10:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct PowExpr : BinaryExpr
@@ -546,6 +601,8 @@ struct PowExpr : BinaryExpr
         l->propagate(derivatives, aux * r);
         r->propagate(derivatives, aux *l * log(l));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Pow:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct PowConstantLeftExpr : BinaryExpr
@@ -561,6 +618,8 @@ struct PowConstantLeftExpr : BinaryExpr
     {
         r->propagate(derivatives, wprime * pow(l, r) * log(l));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "PowConstLeft:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct PowConstantRightExpr : BinaryExpr
@@ -576,6 +635,8 @@ struct PowConstantRightExpr : BinaryExpr
     {
         l->propagate(derivatives, wprime * pow(l, r - 1) * r);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "PowConstRight:"; return BinaryExpr::print(os, pad) ; }
 };
 
 struct SqrtExpr : UnaryExpr
@@ -591,6 +652,8 @@ struct SqrtExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime / (2.0 * sqrt(x)));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Sqrt:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct AbsExpr : UnaryExpr
@@ -606,6 +669,8 @@ struct AbsExpr : UnaryExpr
     {
         x->propagate(derivatives, wprime * std::copysign(1.0, x->val));
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Abs:"; return UnaryExpr::print(os, pad) ; }
 };
 
 struct ErfExpr : UnaryExpr
@@ -625,6 +690,8 @@ struct ErfExpr : UnaryExpr
         const auto aux = 2.0/std::sqrt(pi) * exp(-x*x);
         x->propagate(derivatives, wprime * aux);
     }
+
+    virtual std::ostream& print(std::ostream& os, const std::string& pad) const override { os << pad << "Erf:"; return UnaryExpr::print(os, pad) ; }
 };
 
 //------------------------------------------------------------------------------
@@ -744,7 +811,7 @@ struct var
     /// Explicitly convert this var object variable into a double value
     explicit operator double() const { return expr->val; }
 
-	// Arithmetic-assignment operators
+    // Arithmetic-assignment operators
     var& operator+=(const ExprPtr& other) { expr = expr + other; return *this; }
     var& operator-=(const ExprPtr& other) { expr = expr - other; return *this; }
     var& operator*=(const ExprPtr& other) { expr = expr * other; return *this; }
@@ -898,6 +965,13 @@ inline std::ostream& operator<<(std::ostream& out, const var& x)
 {
     out << autodiff::val(x);
     return out;
+}
+
+
+/// Output an Expression object
+inline std::ostream& operator<<(std::ostream& out, const Expr& x)
+{
+    return x.print(out, " ");
 }
 
 } // namespace autodiff
