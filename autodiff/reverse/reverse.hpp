@@ -289,9 +289,7 @@ struct BinaryExpr : Expr
     {
 	os << "(";
 	l->print(os);
-	os << ")";
 	printOpp(os);
-	os << "(";
 	r->print(os);
 	return os << ")";
     }
@@ -314,6 +312,14 @@ struct AddExpr : BinaryExpr
     }
 
     virtual std::ostream& printOpp(std::ostream& os) const override { return os << "+"; }
+
+    virtual std::ostream& print(std::ostream& os) const override
+    {
+	l->print(os);
+	printOpp(os);
+	r->print(os);
+	return os;
+    }
 };
 
 struct SubExpr : BinaryExpr

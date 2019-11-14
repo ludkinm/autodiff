@@ -17,10 +17,7 @@ int main()
     var x = 2.0;                         // the input variable x
     var u = f(x);                        // the output variable u
 
-    Derivatives dud = derivatives(u);    // evaluate all derivatives of u
-
-    var dudx = dud(x);                   // extract the derivative du/dx
-
     cout << "u = " << u << endl;         // print the evaluated output u
-    cout << "du/dx = " << dudx << endl;  // print the evaluated derivative du/dx
+    cout << "du/dx = " << u.derivative(x) << endl;  // print the evaluated derivative du/dx
+    cout << "du/dx = " << u.expr << endl;  // print the evaluated derivative du/dx
 }
