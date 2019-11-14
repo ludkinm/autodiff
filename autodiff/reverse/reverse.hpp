@@ -67,7 +67,7 @@ struct SqrtExpr;
 struct AbsExpr;
 struct ErfExpr;
 
-using ExprPtr = std::shared_ptr<const Expr>;
+using ExprPtr = std::shared_ptr<Expr>;
 
 using DerivativesMap = std::unordered_map<const Expr*, double>;
 using DerivativesMapX = std::unordered_map<const Expr*, ExprPtr>;
@@ -166,24 +166,23 @@ bool operator>(const ExprPtr& l, double r);
 
 struct Expr
 {
-    /// The numerical value of this expression.
+    // The numerical value of this expression.
     double val;
 
-    /// Construct an Expr object with given numerical value.
+    // Construct an Expr object with given numerical value.
     explicit Expr(double val) : val(val) {}
 
-    /// Update the contribution of this expression in the derivative of the root node of the expression tree.
-    /// @param derivatives The container where the derivatives of the root variable w.r.t. to leaf variables are stored.
-    /// @param wprime The derivative of the root variable w.r.t. a child expression of this expression.
+    // Update the contribution of this expression in the derivative of the root node of the expression tree.
+    // @param derivatives The container where the derivatives of the root variable w.r.t. to leaf variables are stored.
+    // @param wprime The derivative of the root variable w.r.t. a child expression of this expression.
     virtual void propagate(DerivativesMap& derivatives, double wprime) const = 0;
 
-    /// Update the contribution of this expression in the derivative of the root node of the expression tree.
-    /// @param derivatives The container where the derivatives of the root variable w.r.t. to leaf variables are stored.
-    /// @param wprime The derivative of the root variable w.r.t. a child expression of this expression (as an expression).
+    // Update the contribution of this expression in the derivative of the root node of the expression tree.
+    // @param derivatives The container where the derivatives of the root variable w.r.t. to leaf variables are stored.
+    // @param wprime The derivative of the root variable w.r.t. a child expression of this expression (as an expression).
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const = 0;
 
-    virtual std::ostream& print(std::ostream& os) const { return os << val << "[" << &(*this) << "]"; }
-
+    virtual std::ostream& print(std::ostream& os) const { return os << "[" << &(*this) << "=" << val << "]"; }
 };
 
 struct ParameterExpr : Expr
@@ -227,7 +226,7 @@ struct VariableExpr : Expr
 	expr->propagate(derivatives, wprime);
     }
 
-    virtual std::ostream& print(std::ostream& os) const override { Expr::print(os) << " = "; return expr->print(os); }
+    virtual std::ostream& print(std::ostream& os) const override { os << "Variable: "; Expr::print(os) << " = "; return expr->print(os); }
 };
 
 struct ConstantExpr : Expr
@@ -380,7 +379,7 @@ struct DivExpr : BinaryExpr
         r->propagate(derivatives, wprime * aux2);
     }
 
-    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "\\"; }
+    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "/"; }
 };
 
 struct SinExpr : UnaryExpr
@@ -736,7 +735,7 @@ inline ExprPtr operator/(const ExprPtr& l, double r) { return l / constant(r); }
 //------------------------------------------------------------------------------
 // TRIGONOMETRIC FUNCTIONS
 //------------------------------------------------------------------------------
-inline ExprPtr sin(const ExprPtr& x) { return std::make_shared<SinExpr>(std::sin(x->val), x); }
+inline ExprPtr sin(const ExprPtr& x) { return std::make_sh]ared<SinExpr>(std::sin(x->val), x); }
 inline ExprPtr cos(const ExprPtr& x) { return std::make_shared<CosExpr>(std::cos(x->val), x); }
 inline ExprPtr tan(const ExprPtr& x) { return std::make_shared<TanExpr>(std::tan(x->val), x); }
 inline ExprPtr asin(const ExprPtr& x) { return std::make_shared<ArcSinExpr>(std::asin(x->val), x); }
@@ -806,32 +805,32 @@ using namespace reverse;
 /// The autodiff variable type used for automatic differentiation.
 struct var
 {
-    /// The pointer to the expression tree of variable operations
+    // The pointer to the expression tree of variable operations
     ExprPtr expr;
 
     DerivativesMapX mapx;
 
-    /// Construct a default var object variable
+    // Construct a default var object variable
     var() : var{0.0} {}
 
-    /// Construct a var object variable with given value
+    // Construct a var object variable with given value
     var(double val) : expr{std::make_shared<ParameterExpr>(val)}, mapx{}
     {
 	// Adds itself to the derivatives list with value 1
 	compute_derivatives();
     }
 
-    /// Construct a var object variable with given expression
+    // Construct a var object variable with given expression
     var(const ExprPtr& expr) : expr{std::make_shared<VariableExpr>(expr)}, mapx{}
     {
 	// Adds itself to the derivatives list with value 1, then propagates the derivatives up the expr tree
 	compute_derivatives();
     }
 
-    /// Implicitly convert this var object variable into an expression pointer
+    // Implicitly convert this var object variable into an expression pointer
     operator ExprPtr() const { return expr; }
 
-    /// Explicitly convert this var object variable into a double value
+    // Explicitly convert this var object variable into a double value
     explicit operator double() const { return expr->val; }
 
     // each var has a map for the subgraph below its self...
@@ -967,41 +966,6 @@ inline double val(const var& x)
 {
     return x.expr->val;
 }
-
-// using Derivatives = std::function<double(const var&)>;
-// using DerivativesX = std::function<var(const var&)>;
-
-// /// Return the derivatives of a variable y with respect to all independent variables.
-// inline Derivatives derivatives(const var& y)
-// {
-//     DerivativesMap map;
-
-//     y.expr->propagate(map, 1.0);
-
-//     auto fn = [=](const var& x)
-//     {
-//         const auto it = map.find(x.expr.get());
-//         return it != map.end() ? it->second : 0.0;
-//     };
-
-//     return fn;
-// }
-
-// /// Return the derivatives of a variable y with respect to all independent variables.
-// inline DerivativesX derivativesx(const var& y)
-// {
-//     DerivativesMapX map;
-
-//     y.expr->propagate(map, constant(1.0));
-
-//     auto fn = [=](const var& x)
-//     {
-//         const auto it = map.find(x.expr.get());
-//         return it != map.end() ? it->second : constant(0.0);
-//     };
-
-//     return fn;
-// }
 
 /// Output a var object variable to the output stream.
 inline std::ostream& operator<<(std::ostream& out, const var& x)
