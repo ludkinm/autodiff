@@ -35,7 +35,7 @@
 #include <memory>
 #include <unordered_map>
 
-/// autodiff namespace where @ref var and @ref grad are defined.
+/// autodiff namespace where @ref variable and @ref grad are defined.
 namespace autodiff {}
 
 namespace autodiff {
@@ -729,14 +729,24 @@ struct var
     /// The pointer to the expression tree of variable operations
     ExprPtr expr;
 
+    DerivativesMapX mapx;
+
     /// Construct a default var object variable
-    var() : var(0.0) {}
+    var() : var{0.0} {}
 
     /// Construct a var object variable with given value
-    var(double val) : expr(std::make_shared<ParameterExpr>(val)) {}
+    var(double val) : expr{std::make_shared<ParameterExpr>(val)}, mapx{}
+    {
+	// Adds itself to the derivatives list with value 1
+	compute_derivatives();
+    }
 
     /// Construct a var object variable with given expression
-    var(const ExprPtr& expr) : expr(std::make_shared<VariableExpr>(expr)) {}
+    var(const ExprPtr& expr) : expr{std::make_shared<VariableExpr>(expr)}, mapx{}
+    {
+	// Adds itself to the derivatives list with value 1, then propagates the derivatives up the expr tree
+	compute_derivatives();
+    }
 
     /// Implicitly convert this var object variable into an expression pointer
     operator ExprPtr() const { return expr; }
@@ -744,7 +754,27 @@ struct var
     /// Explicitly convert this var object variable into a double value
     explicit operator double() const { return expr->val; }
 
-	// Arithmetic-assignment operators
+    // each var has a map for the subgraph below its self...
+    void compute_derivatives(void)
+    {
+	expr->propagate(mapx, constant(1.0));
+    }
+
+    // get derivative value of this w.r.t x
+    double derivative(const var& x) const
+    {
+	const auto it = mapx.find(x.expr.get());
+        return it != mapx.end() ? it->second->val : 0.0;
+    };
+
+    // get derivative expression of this w.r.t x
+    var derivativex(const var& x) const
+    {
+	const auto it = mapx.find(x.expr.get());
+        return it != mapx.end() ? it->second : constant(0.0);
+    };
+
+    // Arithmetic-assignment operators
     var& operator+=(const ExprPtr& other) { expr = expr + other; return *this; }
     var& operator-=(const ExprPtr& other) { expr = expr - other; return *this; }
     var& operator*=(const ExprPtr& other) { expr = expr * other; return *this; }
@@ -858,40 +888,40 @@ inline double val(const var& x)
     return x.expr->val;
 }
 
-using Derivatives = std::function<double(const var&)>;
-using DerivativesX = std::function<var(const var&)>;
+// using Derivatives = std::function<double(const var&)>;
+// using DerivativesX = std::function<var(const var&)>;
 
-/// Return the derivatives of a variable y with respect to all independent variables.
-inline Derivatives derivatives(const var& y)
-{
-    DerivativesMap map;
+// /// Return the derivatives of a variable y with respect to all independent variables.
+// inline Derivatives derivatives(const var& y)
+// {
+//     DerivativesMap map;
 
-    y.expr->propagate(map, 1.0);
+//     y.expr->propagate(map, 1.0);
 
-    auto fn = [=](const var& x)
-    {
-        const auto it = map.find(x.expr.get());
-        return it != map.end() ? it->second : 0.0;
-    };
+//     auto fn = [=](const var& x)
+//     {
+//         const auto it = map.find(x.expr.get());
+//         return it != map.end() ? it->second : 0.0;
+//     };
 
-    return fn;
-}
+//     return fn;
+// }
 
-/// Return the derivatives of a variable y with respect to all independent variables.
-inline DerivativesX derivativesx(const var& y)
-{
-    DerivativesMapX map;
+// /// Return the derivatives of a variable y with respect to all independent variables.
+// inline DerivativesX derivativesx(const var& y)
+// {
+//     DerivativesMapX map;
 
-    y.expr->propagate(map, constant(1.0));
+//     y.expr->propagate(map, constant(1.0));
 
-    auto fn = [=](const var& x)
-    {
-        const auto it = map.find(x.expr.get());
-        return it != map.end() ? it->second : constant(0.0);
-    };
+//     auto fn = [=](const var& x)
+//     {
+//         const auto it = map.find(x.expr.get());
+//         return it != map.end() ? it->second : constant(0.0);
+//     };
 
-    return fn;
-}
+//     return fn;
+// }
 
 /// Output a var object variable to the output stream.
 inline std::ostream& operator<<(std::ostream& out, const var& x)

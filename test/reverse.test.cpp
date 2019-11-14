@@ -8,15 +8,13 @@ using namespace autodiff;
 /// Convenient function used in the tests to calculate the derivative of a variable y with respect to a variable x.
 inline double grad(const var& y, const var& x)
 {
-    const auto dyd = derivatives(y);
-    return dyd(x);
+    return y.derivative(x);
 }
 
 /// Convenient function used in the tests to calculate the derivative of a variable y with respect to a variable x (for higher order derivatives).
 inline var gradx(const var& y, const var& x)
 {
-    const auto dyd = derivativesx(y);
-    return dyd(x);
+    return y.derivativex(x);
 }
 
 class approx : public Approx
