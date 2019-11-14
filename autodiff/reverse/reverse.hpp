@@ -31,7 +31,6 @@
 
 // C++ includes
 #include <cmath>
-#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <ostream>
@@ -67,7 +66,7 @@ struct SqrtExpr;
 struct AbsExpr;
 struct ErfExpr;
 
-using ExprPtr = std::shared_ptr<Expr>;
+using ExprPtr = std::shared_ptr<const Expr>;
 
 using DerivativesMap = std::unordered_map<const Expr*, double>;
 using DerivativesMapX = std::unordered_map<const Expr*, ExprPtr>;
@@ -735,7 +734,7 @@ inline ExprPtr operator/(const ExprPtr& l, double r) { return l / constant(r); }
 //------------------------------------------------------------------------------
 // TRIGONOMETRIC FUNCTIONS
 //------------------------------------------------------------------------------
-inline ExprPtr sin(const ExprPtr& x) { return std::make_sh]ared<SinExpr>(std::sin(x->val), x); }
+inline ExprPtr sin(const ExprPtr& x) { return std::make_shared<SinExpr>(std::sin(x->val), x); }
 inline ExprPtr cos(const ExprPtr& x) { return std::make_shared<CosExpr>(std::cos(x->val), x); }
 inline ExprPtr tan(const ExprPtr& x) { return std::make_shared<TanExpr>(std::tan(x->val), x); }
 inline ExprPtr asin(const ExprPtr& x) { return std::make_shared<ArcSinExpr>(std::asin(x->val), x); }
