@@ -183,7 +183,8 @@ struct Expr
 	return val;
     }
 
-    virtual std::ostream& print(std::ostream& os) const { return os << "[" << this << "=" << val << "]"; }
+    virtual std::ostream& print(std::ostream& os) const { return os << val; }
+    virtual std::ostream& fullprint(std::ostream& os) const { return os << "[" << this << "=" << val << "]"; }
 };
 
 struct ParameterExpr : Expr
@@ -196,6 +197,7 @@ struct ParameterExpr : Expr
 	if(it != derivatives.end()) it->second = it->second + wprime;
 	else derivatives.insert({ this, wprime });
     }
+    virtual std::ostream& print(std::ostream& os) const override { return os << "[" << val << "]"; }
 };
 
 struct VariableExpr : Expr
@@ -220,9 +222,15 @@ struct VariableExpr : Expr
 
     virtual std::ostream& print(std::ostream& os) const override
     {
-	os << "Variable: ";
+	os << "[";
 	Expr::print(os) << " = ";
-	return expr->print(os);
+	return expr->print(os) << "]";
+    }
+
+    virtual std::ostream& fullprint(std::ostream& os) const override
+    {
+	os << "Variable: ";
+	return print(os);
     }
 };
 
@@ -232,8 +240,6 @@ struct ConstantExpr : Expr
 
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
     {}
-
-    virtual std::ostream& print(std::ostream& os) const { return os << val; }
 };
 
 struct UnaryExpr : Expr
@@ -844,15 +850,20 @@ struct var
     // Construct a var object variable with given value
     var(double val) : expr{std::make_shared<ParameterExpr>(val)}, map{}
     {
-	// Adds itself to the derivatives list with value 1
 	compute_derivatives();
     }
 
     // Construct a var object variable with given expression
     var(const ExprPtr& expr) : expr{std::make_shared<VariableExpr>(expr)}, map{}
     {
-	// Adds itself to the derivatives list with value 1, then propagates the derivatives up the expr tree
+	// propagate the derivatives down.
 	compute_derivatives();
+    }
+
+    var& operator=(double x)
+    {
+	expr->val = x;
+	return *this;
     }
 
     // Implicitly convert this var object variable into an expression pointer

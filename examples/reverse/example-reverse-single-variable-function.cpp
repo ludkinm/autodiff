@@ -21,27 +21,11 @@ int main()
     cout << "u = " << u.expr << endl;        // 101
     cout << "du/dx = " << dudx.expr << endl; // 20
 
-    x.expr->val = 4.0;
-    u.update();			      // update the values
-    // dudx = u.derivativex(x);
+    x = 4.0;				     // would be nice if this triggered a tree update
+    v.update();                              // update the values
     cout << "u = " << u.expr << endl;        // 17
-    cout << "du/dx = " << dudx.expr << endl; //  8
-    cout << "du/dx = " << dudx << endl; //  8
-
-
-    // cout << endl;
-
-    // // want to update the value of x really...
-
-    // u.eval(); //    u = f(x);
-    // cout << "u = " << u.expr << endl;
-
-    // cout << "du/dx(x=3.0) = " << dudx.expr << endl; // print the evaluated derivative du/dx
-
-// x = 3.0;                         // the input variable x
-    // u = f(x);                        // the output variable u
-    // cout << "u = " << u.expr << endl;         // print evaluation of  u
-    // cout << "du/dx(x=3.0) = " << u.derivative(x) << endl; // print the evaluated derivative du/dx
+    cout << "du/dx = " << dudx.expr << endl;
+    cout << "du/dx = " << dudx << endl;      //  8
 
     return 0;
 }
