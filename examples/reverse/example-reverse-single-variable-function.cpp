@@ -22,7 +22,6 @@ int main()
     cout << "du/dx = " << dudx.expr << endl; // 20
 
     x = 4.0;				     // would be nice if this triggered a tree update
-    v.update();                              // update the values
     cout << "u = " << u.expr << endl;        // 17
     cout << "du/dx = " << dudx.expr << endl;
     cout << "du/dx = " << dudx << endl;      //  8

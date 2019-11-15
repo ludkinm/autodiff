@@ -252,7 +252,7 @@ struct UnaryExpr : Expr
 
     virtual std::ostream& print(std::ostream& os) const override
     {
-	Expr::print(os);
+	//Expr::print(os);
 	printOpp(os);
 	os << "(";
 	x->print(os);
@@ -288,10 +288,12 @@ struct BinaryExpr : Expr
 
     virtual std::ostream& print(std::ostream& os) const override
     {
-	Expr::print(os);
+	// Expr::print(os);
 	os << "(";
 	l->print(os);
+	os << ")";
 	printOpp(os);
+	os << "(";
 	r->print(os);
 	return os << ")";
     }
@@ -314,14 +316,6 @@ struct AddExpr : BinaryExpr
     }
 
     virtual std::ostream& printOpp(std::ostream& os) const override { return os << "+"; }
-
-    virtual std::ostream& print(std::ostream& os) const override
-    {
-	l->print(os);
-	printOpp(os);
-	r->print(os);
-	return os;
-    }
 };
 
 struct SubExpr : BinaryExpr
@@ -604,15 +598,13 @@ struct Log10Expr : UnaryExpr
 
 struct PowExpr : BinaryExpr
 {
-    double log_l;
-
-    PowExpr(double val, const ExprPtr& l, const ExprPtr& r) : BinaryExpr(val, l, r), log_l(std::log(l->val)) {}
+    PowExpr(double val, const ExprPtr& l, const ExprPtr& r) : BinaryExpr(val, l, r) {}
 
     virtual void propagate(DerivativesMapX& derivatives, const ExprPtr& wprime) const
     {
         const auto aux = wprime * pow(l, r - 1);
         l->propagate(derivatives, aux * r);
-        r->propagate(derivatives, aux *l * log(l));
+        r->propagate(derivatives, aux * l * log(l));
     }
 
     virtual double update() override
@@ -621,7 +613,7 @@ struct PowExpr : BinaryExpr
 	return BinaryExpr::update();
     }
 
-    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "pow"; }
+    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "^"; }
 };
 
 struct PowConstantLeftExpr : BinaryExpr
@@ -639,7 +631,7 @@ struct PowConstantLeftExpr : BinaryExpr
 	return BinaryExpr::update();
     }
 
-    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "pow"; }
+    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "powCL"; }
 };
 
 struct PowConstantRightExpr : BinaryExpr
@@ -657,7 +649,7 @@ struct PowConstantRightExpr : BinaryExpr
 	return BinaryExpr::update();
     }
 
-    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "pow"; }
+    virtual std::ostream& printOpp(std::ostream& os) const override { return os << "powCR"; }
 };
 
 struct SqrtExpr : UnaryExpr
@@ -839,6 +831,7 @@ using namespace reverse;
 /// The autodiff variable type used for automatic differentiation.
 struct var
 {
+public:
     // The pointer to the expression tree of variable operations
     ExprPtr expr;
 
@@ -858,12 +851,6 @@ struct var
     {
 	// propagate the derivatives down.
 	compute_derivatives();
-    }
-
-    var& operator=(double x)
-    {
-	expr->val = x;
-	return *this;
     }
 
     // Implicitly convert this var object variable into an expression pointer
